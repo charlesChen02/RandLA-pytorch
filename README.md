@@ -27,7 +27,7 @@ This repository contains the implementation of [RandLA-Net (CVPR 2020 Oral)](htt
 
 | mIoU | car  | bicycle | motorcycle | truck | other-vehicle | person | bicyclist | motorcyclist | road | parking | sidewalk | other-ground | building | fence | vegetation | trunk | terrain | pole | traffic-sign |
 | ---- | ------- | ---------- | ----- | ------------- | ------ | --------- | ------------ | ---- | ------- | -------- | ------------ | -------- | ----- | ---------- | ----- | ------- | ---- | ------------ | ---- |
-| 52.9 | 0.919 | 0.122 | 0.290 | 0.660 | 0.444 | 0.515 | 0.676 | 0.000 | 0.912 | 0.421 | 0.759 | 0.001 | 0.878 | 0.354 | 0.844 | 0.595 | 0.741 | 0.517 | 0.414 |
+| 55.1 | 0.939|0.092|0.347|0.659|0.453|0.548|0.707|0.000|0.920|0.401|0.784|0.006|0.886|0.520|0.855|0.627|0.747|0.568|0.403|
 
 ## A. Environment Setup
 
