@@ -1,8 +1,15 @@
 # RandLA-Net-pytorch
-
 This repository contains the implementation of [RandLA-Net (CVPR 2020 Oral)](https://arxiv.org/abs/1911.11236) in PyTorch.
-- We only support SemanticKITTI dataset now. (Welcome everyone to develop together and raise PR)
-- Our model is almost as good as the original implementation. (Validation set : Our 52.9% mIoU vs original 53.1%)
+### updates:
+* We extend the model with to train with one synthetic dataset, [SynLiDAR](https://github.com/xiaoaoran/SynLiDAR)
+* We replaced the weighted cross entropy in the oroginal implementation with focal loss to alliverate the influence of class imbalance
+* fix some bugs in the original implementation
+* We improve the mIoU on the validation set from 53.1% on **validation set** to 
+* This is a good starting point & backbone choice for those who plan to start their research on point clouds segmentation.
+
+
+
+- support SemanticKITTI dataset now. (Welcome everyone to develop together and raise PR)
 - We place our pretrain-model in [`pretrain_model/checkpoint.tar`](pretrain_model/checkpoint.tar) directory.
 
 ### Performance
@@ -35,7 +42,7 @@ pip install -r requirements.txt
 2. Compile C++ Wrappers
 
 ```
-bash compile_op.sh
+sh compile_op.sh
 ```
 
 ## B. Prepare Data
@@ -82,7 +89,6 @@ python3 evaluate_SemanticKITTI.py --dataset /tmp2/tsunghan/PCL_Seg_data/sequence
 ```
 
 ## Acknowledgement
-
+- This repo is improved from [RandLA-Net PyTorch](https://github.com/tsunghan-wu/RandLA-Net-pytorch)
 - Original Tensorflow implementation [link](https://github.com/QingyongHu/RandLA-Net)
-- Our network & config codes are modified from [RandLA-Net PyTorch](https://github.com/qiqihaer/RandLA-Net-pytorch)
-- Our evaluation & visualization codes are modified from [SemanticKITTI API](https://github.com/PRBonn/semantic-kitti-api)
+
