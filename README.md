@@ -4,7 +4,7 @@ This repository contains the implementation of [RandLA-Net (CVPR 2020 Oral)](htt
 * We extend the model with to train with one synthetic dataset, [SynLiDAR](https://github.com/xiaoaoran/SynLiDAR)
 * We replaced the weighted cross entropy in the oroginal implementation with focal loss to alliverate the influence of class imbalance
 * fix some bugs in the original implementation
-* We improve the mIoU on the validation set from 53.1% on **validation set** to 
+* We improve the mIoU on the validation set from 53.1% on **validation set** to **55.1%**.
 * This is a good starting point & backbone choice for those who plan to start their research on point clouds segmentation.
 
 
@@ -21,7 +21,7 @@ This repository contains the implementation of [RandLA-Net (CVPR 2020 Oral)](htt
 | Model                      | mIoU  |
 | -------------------------- | ----- |
 | Original Tensorflow        | 0.531 |
-| Our Pytorch Implementation | 0.529 |
+| Our Pytorch Implementation | 0.551 |
 
 - Per class mIoU
 
