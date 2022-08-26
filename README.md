@@ -1,13 +1,15 @@
 # RandLA-Net-pytorch
 This repository contains the implementation of [RandLA-Net (CVPR 2020 Oral)](https://arxiv.org/abs/1911.11236) in PyTorch.
-### updates:
+### Updates:
+
 * We extend the model with to train with one synthetic dataset, [SynLiDAR](https://github.com/xiaoaoran/SynLiDAR)
 * We replaced the weighted cross entropy in the oroginal implementation with focal loss to alliverate the influence of class imbalance
-* fix some bugs in the original implementation
+* Add frequency weighted mIoU as indicator for the training & validation
+* Fix some minor bugs in the original implementation
 * We improve the mIoU on the validation set from 53.1% on **validation set** to **55.1%**.
 * This is a good starting point & backbone choice for those who plan to start their research on point clouds segmentation.
 
-
+Previous:
 
 - support SemanticKITTI dataset now. (Welcome everyone to develop together and raise PR)
 - We place our pretrain-model in [`pretrain_model/checkpoint.tar`](pretrain_model/checkpoint.tar) directory.
@@ -50,7 +52,7 @@ sh compile_op.sh
 Download the [Semantic KITTI dataset](http://semantic-kitti.org/dataset.html#download), and preprocess the data:
 
 ```
-python data_prepare_semantickitti.py
+python data_prepare_semantickitti.py --src_path path/to/sequences --dst_path destination/for/preprocessed/sequences
 ```
 Note: 
 - Please change the dataset path in the `data_prepare_semantickitti.py` with your own path.
@@ -64,11 +66,36 @@ Note:
 python3 train_SemanticKITTI.py <args>
 ```
 
+```
+Options:
+--checkpoint_path    path to pretrained models(if any), otherwise train from start
+--log_dir_name       Name of the log dir, the file will be in logs/ suffixed with start time
+--max_epoch          max epoch for the model to run, default 80
+--batch_size         training batch size, default 6 (indicated in oroginal implementation), modify to full utilize the GPU/s
+--val_batch_size     batch size for validation, default 30
+--num_workers        number of workers for I/O
+--focal              whether to use focal loss or not, default True
+--focal_gamma        gamma for focal loss, default 2
+
+```
+
+
+
 2. Testing
 
 ```bash
 python3 test_SemanticKITTI.py <args>
 ```
+```
+Options:
+--infer_type         all: infer all points in specified sequence, sub: subsamples in specified sequence
+--checkpoint_path    required. path to the model to test
+--test_id            sequence id to test
+--index_to_label     whether to convert .npy(label 0-19) back .label(original labels)
+```
+
+
+
 **Note: if the flag `--index_to_label` is set, output predictions will be ".label" files (label figure) which can be visualized; Otherwise, they will be ".npy" (0-19 index) files which is used to evaluated afterward.**
 
 ## D. Visualization & Evaluation

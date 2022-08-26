@@ -51,7 +51,7 @@ def my_worker_init_fn(worker_id):
 class Trainer:
     def __init__(self):
         # Init Logging
-        FLAGS.log_dir = "log_final/"+FLAGS.log_dir+'_'+datetime.datetime.now().strftime("%Y-%-m-%d-%H-%M")
+        FLAGS.log_dir = "log/"+FLAGS.log_dir+'_'+datetime.datetime.now().strftime("%Y-%-m-%d-%H-%M")
         if not os.path.exists(FLAGS.log_dir):
             os.mkdir(FLAGS.log_dir)
         self.log_dir = FLAGS.log_dir
