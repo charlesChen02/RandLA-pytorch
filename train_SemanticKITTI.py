@@ -38,7 +38,7 @@ parser.add_argument('--batch_size', type=int, default=6, help='Batch Size during
 parser.add_argument('--val_batch_size', type=int, default=30, help='Validation Batch Size during training [default: 30]')
 parser.add_argument('--num_workers', type=int, default=10, help='Number of workers [default: 10]')
 parser.add_argument('--focal', type=bool, default=True, help='If use focal loss or not[default: True]')
-parser.add_argument('--syn', type=int, default=1, help='whether use synkitti mixing or pure kitti')
+parser.add_argument('--syn', type=int, default=0, help='whether use synkitti mixing or pure kitti')
 parser.add_argument('--focal_gamma', type=int, default=2, help='gamma for focal loss[default: 2]')
 parser.add_argument('--ignore', type=str, default='', help='mode to ignore default or major [choice: major]')
 FLAGS = parser.parse_args()
