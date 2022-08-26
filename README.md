@@ -68,8 +68,9 @@ python3 train_SemanticKITTI.py <args>
 
 ```
 Options:
+--backbone           select the backbone to be used: choices=['randla', 'baflac', 'baaf']
 --checkpoint_path    path to pretrained models(if any), otherwise train from start
---log_dir_name       Name of the log dir, the file will be in logs/ suffixed with start time
+--log_dir            Name of the log dir, the file will be in logs/ suffixed with start time
 --max_epoch          max epoch for the model to run, default 80
 --batch_size         training batch size, default 6 (indicated in oroginal implementation), modify to full utilize the GPU/s
 --val_batch_size     batch size for validation, default 30
@@ -88,6 +89,7 @@ python3 test_SemanticKITTI.py <args>
 ```
 ```
 Options:
+--backbone           select the backbone to be used: choices=['randla', 'baflac', 'baaf']
 --infer_type         all: infer all points in specified sequence, sub: subsamples in specified sequence
 --checkpoint_path    required. path to the model to test
 --test_id            sequence id to test
