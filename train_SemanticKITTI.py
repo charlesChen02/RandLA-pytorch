@@ -20,7 +20,7 @@ from network.loss_func import compute_loss
 import datetime
 from functools import partialmethod
 from network.focal_loss import FocalLoss
-
+import shutil
 # reproductability
 torch.manual_seed(43)
 
@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', default='', help='Model checkpoint path [default: None]')
-parser.add_argument('--log_dir', default='default', help='dir prefix to save model checkpoint [default: default]')
+parser.add_argument('--log_dir_name', default='default', help='dir prefix to save model checkpoint [default: default]')
 parser.add_argument('--max_epoch', type=int, default=80, help='Epoch to run [default: 100]')
 parser.add_argument('--batch_size', type=int, default=6, help='Batch Size during training [default: 6]')
 parser.add_argument('--val_batch_size', type=int, default=30, help='Validation Batch Size during training [default: 30]')
@@ -40,6 +40,7 @@ parser.add_argument('--num_workers', type=int, default=10, help='Number of worke
 parser.add_argument('--focal', type=bool, default=True, help='If use focal loss or not[default: True]')
 parser.add_argument('--syn', type=int, default=1, help='whether use synkitti mixing or pure kitti')
 parser.add_argument('--focal_gamma', type=int, default=2, help='gamma for focal loss[default: 2]')
+parser.add_argument('--ignore', type=str, default='', help='mode to ignore default or major [choice: major]')
 FLAGS = parser.parse_args()
 
 
@@ -59,19 +60,36 @@ class Trainer:
         DATE_FORMAT = '%Y%m%d %H:%M:%S'
         logging.basicConfig(level=logging.DEBUG, format=LOGGING_FORMAT, datefmt=DATE_FORMAT, filename=log_fname)
         self.logger = logging.getLogger("Trainer")
-
+        # store current config
+        shutil.copy('./train_SemanticKITTI.py', FLAGS.log_dir)
+        shutil.copy('utils/config.py', FLAGS.log_dir)
         # tensorboard writer
         self.tf_writer = SummaryWriter(self.log_dir)
 
         # get_dataset & dataloader
         if FLAGS.syn==1:
+            # full synlidar + semantickitti
             seq_l = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10', '100', '101', '102', '103']
         elif FLAGS.syn==2:
+            # semantickitti + minor stacked synlidar
             seq_l = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10', '200', '201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '212']
+        elif FLAGS.syn==3:
+            # minor class semantickitti only
+            seq_l = ['000', '001', '002', '003', '004', '005', '006', '007', '009', '010']
+        elif FLAGS.syn==4:
+            # minor class semantickitti + minor synlidar
+            seq_l = ['000', '001', '002', '003', '004', '005', '006', '007', '009', '010',  '300', '301', '302', '303', '304', '305', '306', '307', '308', '309', '310', '311', '312']
         else:
+            # full semantickitti
             seq_l = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10']
-        train_dataset = SemanticKITTI('training', seq_list = seq_l)
-        val_dataset = SemanticKITTI('validation')
+
+        if FLAGS.ignore == 'major':
+            ignore_labels = [0, 1, 9, 13, 15]
+        else:
+            ignore_labels = None
+    
+        train_dataset = SemanticKITTI('training', seq_list = seq_l, ignore_labels=ignore_labels)
+        val_dataset = SemanticKITTI('validation', ignore_labels=ignore_labels)
 
         self.train_loader = DataLoader(
             train_dataset,
@@ -113,8 +131,9 @@ class Trainer:
             self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
             self.start_epoch = checkpoint['epoch']
         self.logger.info("Training Config: Batch size: %d, max_epoch: %d, start epoch: %d" % (FLAGS.batch_size, FLAGS.max_epoch, self.start_epoch))
+        
         # Loss Function
-        class_weights = torch.from_numpy(train_dataset.get_class_weight()).float().cuda()
+        class_weights = torch.from_numpy(train_dataset.get_class_weight()).float().to(device)
         if not FLAGS.focal:
             self.criterion = nn.CrossEntropyLoss(weight=class_weights, reduction='none')
         else:
@@ -168,26 +187,37 @@ class Trainer:
         self.tf_writer.add_scalar("Loss/Train", mLoss / batch_idx, self.cur_epoch)
         self.tf_writer.add_scalar("Acc/Train", mAcc / batch_idx, self.cur_epoch)
         mean_iou, _ = iou_calc.compute_iou()
+        freqweight_iou = iou_calc.compute_freqweighted_iou()
         self.tf_writer.add_scalar("mIoU/Train", mean_iou, self.cur_epoch)
-        print("Epoch: {}, Loss: {}, Acc: {}, mIoU: {}".format(self.cur_epoch, mLoss/batch_idx, mAcc/batch_idx, mean_iou))
+        self.tf_writer.add_scalar("freqweight_iou/Train", freqweight_iou, self.cur_epoch)
+        print("Epoch: {}, Loss: {}, Acc: {}, mIoU: {}, freqweighted_IoU: {}".format(self.cur_epoch, mLoss/batch_idx, mAcc/batch_idx, mean_iou, freqweight_iou))
         
         self.scheduler.step()
 
     def train(self):
         highest_miou = 0
+        highest_fwIoU = 0
         for epoch in range(self.start_epoch, FLAGS.max_epoch):
             self.cur_epoch = epoch
             self.logger.info('**** EPOCH %03d ****' % (epoch))
 
             self.train_one_epoch()
             self.logger.info('**** EVAL EPOCH %03d ****' % (epoch))
-            mean_iou = self.validate()
+            mean_iou, fw_IoU = self.validate()
+
             # Save best checkpoint
             if mean_iou > highest_miou:
                 print("saving best models with mIoU: ", mean_iou)
                 highest_miou = mean_iou
                 checkpoint_file = os.path.join(self.log_dir,  'checkpoint.tar')
                 self.save_checkpoint(checkpoint_file)
+            # save model with best fwmIoU
+            if fw_IoU > highest_fwIoU:
+                print("saving best models with fwIoU: ", fw_IoU)
+                highest_fwIoU = fw_IoU
+                checkpoint_file = os.path.join(self.log_dir,  'fw_checkpoint.tar')
+                self.save_checkpoint(checkpoint_file)
+
             checkpoint_file = os.path.join(self.log_dir,  'latest_checkpoint.tar')
             self.save_checkpoint(checkpoint_file)
 
@@ -217,18 +247,21 @@ class Trainer:
                 acc, end_points = compute_acc(end_points)
                 macc += acc.item()
                 iou_calc.add_data(end_points)
+        
         self.tf_writer.add_scalar("Loss/Valid", mloss / div, self.cur_epoch)
         self.tf_writer.add_scalar("acc/Valid", macc / div, self.cur_epoch)
         mean_iou, iou_list = iou_calc.compute_iou()
+        freqweight_iou = iou_calc.compute_freqweighted_iou()
         self.tf_writer.add_scalar("mIoU/Valid", mean_iou, self.cur_epoch)
-        self.logger.info('mean IoU:{:.1f}'.format(mean_iou * 100))
+        self.tf_writer.add_scalar("freqweight_iou/Valid", freqweight_iou, self.cur_epoch)
+        self.logger.info('mean IoU:{:.1f}, freqweight_iou: {:.1f}'.format(mean_iou * 100, freqweight_iou * 100))
         s = 'IoU:'
         for iou_tmp in iou_list:
             s += '{:5.2f} '.format(100 * iou_tmp)
         self.logger.info(s)
-        print("Valid Epoch: {}, Loss: {}, Acc: {}, mIoU: {}".format(self.cur_epoch, mloss/batch_idx, macc/batch_idx, mean_iou))
+        print("Valid Epoch: {}, Loss: {}, Acc: {}, mIoU: {}, fwIoU: {}".format(self.cur_epoch, mloss/batch_idx, macc/batch_idx, mean_iou, freqweight_iou))
         
-        return mean_iou
+        return mean_iou, freqweight_iou
 
     def save_checkpoint(self, fname):
         save_dict = {

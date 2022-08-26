@@ -9,12 +9,15 @@ import torch
 
 
 class SemanticKITTI(torch_data.Dataset):
-    def __init__(self, mode, data_list=None, seq_list = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10', '100', '101', '102', '103']):
+    def __init__(self, mode, data_list=None, seq_list = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10'], ignore_labels = None):
         self.name = 'SemanticKITTI'
-        self.dataset_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/SemanticKitti/sequences_0.06'
+        self.dataset_path = 'data/SemanticKitti/sequences_0.06'
 
         self.num_classes = cfg.num_classes
-        self.ignored_labels = np.sort([0])
+        if ignore_labels is None:
+            self.ignored_labels = np.sort([0])
+        else:
+            self.ignored_labels = ignore_labels
         self.mode = mode
         if data_list is None:
             if mode == 'validation':

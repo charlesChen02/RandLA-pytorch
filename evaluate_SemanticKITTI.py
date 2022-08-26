@@ -20,15 +20,13 @@ def get_args():
     parser.add_argument(
         '--dataset', '-d',
         type=str,
-        # required=True,
-        default='/data/gpfs/projects/punim1650/Chaoyinc/data/SemanticKitti/sequences',
+        required=True,
         help='Dataset dir. No Default',
     )
     parser.add_argument(
         '--predictions', '-p',
         type=str,
-        # required=None,
-        default='/data/gpfs/projects/punim1650/Chaoyinc/res',
+        required=True,
         help='Prediction dir. Same organization as dataset, but predictions in'
         'each sequences "prediction" directory. No Default. If no option is set'
         ' we look for the labels in the same directory as dataset'

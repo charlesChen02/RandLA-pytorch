@@ -43,7 +43,12 @@ class IoUCalculator:
                 iou_list.append(0.0)
         mean_iou = sum(iou_list) / float(self.cfg.num_classes)
         return mean_iou, iou_list
-
+    def compute_freqweighted_iou(self):
+        num_points_per_class  = self.gt_classes
+        num_points_total = self.gt_classes.sum()
+        _, iou_list = self.compute_iou()
+        freqweighted_iou = float(np.nansum(num_points_per_class * iou_list) / num_points_total)
+        return freqweighted_iou
 
 def compute_acc(end_points):
 

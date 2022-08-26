@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--infer_type', default='all', type=str, choices=['all', 'sub'], help='Infer ALL or just infer Subsample')
 parser.add_argument('--checkpoint_path', default='', help='Model checkpoint path [default: None]')
 parser.add_argument('--test_id', default='08', type=str, help='Predicted sequence id [default: 08]')
-parser.add_argument('--result_dir', default= '/data/gpfs/projects/punim1650/Chaoyinc/res', help='Dump dir to save prediction [default: result/]')
+parser.add_argument('--result_dir', default= 'result/', help='Dump dir to save prediction [default: result/]')
 parser.add_argument('--yaml_config', default='utils/semantic-kitti.yaml', help='semantic-kitti.yaml path')
 parser.add_argument('--batch_size', type=int, default=30, help='Batch Size during training [default: 30]')
 parser.add_argument('--index_to_label', action='store_true',
@@ -109,8 +109,7 @@ class Tester:
         self.net.eval()  # set model to eval mode (for bn and dp)
         print("rooling predict", flush=True)
         iter_loader = iter(self.test_loader)
-        # 当前的逻辑是整体的经过一遍全部的instance, 之后对于其中的有min——possibility的instance再进行inference
-        # 每次iteration只会选出min_possibility最小的一个instance, 然后进行训练
+
         with torch.no_grad():
             min_possibility = self.test_dataset.min_possibility
             while np.min(min_possibility) <= 0.8:

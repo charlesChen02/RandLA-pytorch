@@ -10,12 +10,15 @@ from tqdm import tqdm
 
 
 class SemanticKITTI(torch_data.IterableDataset):
-    def __init__(self, mode, test_id=None, batch_size=1, data_list=None):
+    def __init__(self, mode, test_id=None, batch_size=1, data_list=None, ignore_labels=None):
         self.name = 'SemanticKITTI'
-        self.dataset_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/SemanticKitti/sequences_0.06'
+        self.dataset_path = 'data/SemanticKitti/sequences_0.06'
         self.batch_size = batch_size
         self.num_classes = cfg.num_classes
-        self.ignored_labels = np.sort([0])
+        if ignore_labels is None:
+            self.ignored_labels = np.sort([0])
+        else:
+            self.ignored_labels = ignore_labels
 
         self.seq_list = np.sort(os.listdir(self.dataset_path))
         if test_id is not None:

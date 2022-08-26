@@ -10,7 +10,7 @@ from utils.data_process import DataProcessing as DP
 parser = argparse.ArgumentParser()
 parser.add_argument('--src_path', default=None, help='source dataset path [default: None]')
 parser.add_argument('--dst_path', default=None, help='destination dataset path [default: None]')
-parser.add_argument('--grid_size', type=float, default=0, help='Subsample Grid Size [default: 0.06]')
+parser.add_argument('--grid_size', type=float, default=0.06, help='Subsample Grid Size [default: 0.06]')
 parser.add_argument('--yaml_config', default='utils/semantic-kitti.yaml', help='semantic-kitti.yaml path')
 FLAGS = parser.parse_args()
 
@@ -23,8 +23,8 @@ remap_lut = np.zeros((max_key + 100), dtype=np.int32)
 remap_lut[list(remap_dict.keys())] = list(remap_dict.values())
 
 grid_size = FLAGS.grid_size
-dataset_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/SemanticKitti/sequences'
-output_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/SemanticKitti/sequences' + '_' + str(grid_size)
+dataset_path = FLAGS.src_path
+output_path = FLAGS.dst_path + '_' + str(FLAGS.grid_size)
 seq_list = np.sort(os.listdir(dataset_path))
 for seq_id in seq_list:
     print('sequence' + seq_id + ' start')
@@ -47,7 +47,7 @@ for seq_id in seq_list:
             # print(scan_id)
             points = DP.load_pc_kitti(join(pc_path, scan_id))
             labels = DP.load_label_kitti(join(label_path, str(scan_id[:-4]) + '.label'), remap_lut)
-            # sub_points, sub_labels = DP.grid_sub_sampling(points, labels=labels, grid_size=grid_size)
+            sub_points, sub_labels = DP.grid_sub_sampling(points, labels=labels, grid_size=grid_size)
             sub_points, sub_labels = points, labels
             search_tree = KDTree(sub_points)
             KDTree_save = join(KDTree_path_out, str(scan_id[:-4]) + '.pkl')

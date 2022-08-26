@@ -25,8 +25,8 @@ remap_lut = np.zeros((max_key + 100), dtype=np.int32)
 remap_lut[list(remap_dict.keys())] = list(remap_dict.values())
 
 grid_size = FLAGS.grid_size
-dataset_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/synlidar_sub'
-output_path = '/data/gpfs/projects/punim1650/Chaoyinc/data/synlidar_sub' + '_stacking'
+dataset_path = FLAGS.src_path
+output_path = FLAGS.dst_path + '_' + str(FLAGS.grid_size)
 seq_list = np.sort(os.listdir(dataset_path))
 for seq_id in seq_list:
     print('sequence' + seq_id + ' start')
@@ -116,13 +116,10 @@ for seq_id in seq_list:
                 # load points and labels for point one scan id
                 points = DP.load_pc_kitti(join(pc_path, scan_id))
                 labels = DP.load_label_kitti(join(label_path, str(scan_id[:-4]) + '.label'), remap_lut)
-                # sub_points, sub_labels = DP.grid_sub_sampling(points, labels=labels, grid_size=grid_size)
-
+                sub_points, sub_labels = DP.grid_sub_sampling(points, labels=labels, grid_size=grid_size)
                 sub_points, sub_labels = points, labels
                 # build KDtree for search
                 search_tree = KDTree(sub_points)
-
-
 
                 KDTree_save = join(KDTree_path_out, str(scan_id[:-4]) + '.pkl')
                 np.save(join(pc_path_out, scan_id)[:-4], sub_points)
@@ -130,8 +127,6 @@ for seq_id in seq_list:
                 with open(KDTree_save, 'wb') as f:
                     pickle.dump(search_tree, f)
 
-
-                
                 if seq_id == '08': # use seq 8 as validation
                     proj_path = join(seq_path_out, 'proj')
                     os.makedirs(proj_path) if not exists(proj_path) else None
@@ -141,7 +136,6 @@ for seq_id in seq_list:
                     with open(proj_save, 'wb') as f:
                         pickle.dump([proj_inds], f)
     else:
-        # TODO: this part need to modify before use
         proj_path = join(seq_path_out, 'proj')
         os.makedirs(proj_path) if not exists(proj_path) else None
         scan_list = np.sort(os.listdir(pc_path))
