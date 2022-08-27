@@ -23,6 +23,7 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 np.random.seed(0)
 warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser()
+parser.add_argument('--backbone', type=str, default='randla', choices=['randla', 'baflac', 'baaf'])
 parser.add_argument('--infer_type', default='all', type=str, choices=['all', 'sub'], help='Infer ALL or just infer Subsample')
 parser.add_argument('--checkpoint_path', default='', help='Model checkpoint path [default: None]')
 parser.add_argument('--test_id', default='08', type=str, help='Predicted sequence id [default: 08]')
@@ -32,7 +33,8 @@ parser.add_argument('--batch_size', type=int, default=30, help='Batch Size durin
 parser.add_argument('--index_to_label', action='store_true',
                     help='Set index-to-label flag when inference / Do not set it on seq 08')
 FLAGS = parser.parse_args()
-
+if FLAGS.backbone == 'baflac':
+    from utils.config import ConfigSemanticKITTI_BAF as cfg
 
 class Tester:
     def __init__(self):
@@ -50,17 +52,39 @@ class Tester:
         # get_dataset & dataloader
         test_dataset = SemanticKITTI('test', test_id=FLAGS.test_id, batch_size=FLAGS.batch_size)
 
+        # Network & Optimizer
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if FLAGS.backbone == 'baflac':
+            from network.BAF_LAC import BAF_LAC
+            self.logger.info("Use Baseline: BAF-LAC")
+            self.net = BAF_LAC(cfg)
+            self.net.to(device)
+            collate_fn = test_dataset.collate_fn_baf_lac
+
+        elif FLAGS.backbone == 'randla':
+            from network.RandLANet import Network
+            self.logger.info("Use Baseline: Rand-LA")
+            self.net = Network(cfg)
+            self.net.to(device)
+            collate_fn = test_dataset.collate_fn
+
+        elif FLAGS.backbone == 'baaf':
+            from network.BAAF import Network
+            self.logger.info("Use Baseline: BAAF")
+            self.net = Network(cfg)
+            self.net.to(device)
+            collate_fn = test_dataset.collate_fn
+
+        else:
+            raise TypeError("1~5~!! can can need !!!")
+
         self.test_loader = DataLoader(
             test_dataset,
             batch_size=None,
-            collate_fn=test_dataset.collate_fn,
+            collate_fn=collate_fn,
             pin_memory=True,
             num_workers=0, 
         )
-        # Network & Optimizer
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.net = Network(cfg)
-        self.net.to(device)
 
         # Load module
         CHECKPOINT_PATH = FLAGS.checkpoint_path

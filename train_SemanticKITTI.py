@@ -15,7 +15,6 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.semkitti_trainset import SemanticKITTI
 from utils.config import ConfigSemanticKITTI as cfg
 from utils.metric import compute_acc, IoUCalculator
-from network.RandLANet import Network
 from network.loss_func import compute_loss
 import datetime
 from functools import partialmethod
@@ -31,8 +30,9 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--backbone', type=str, default='randla', choices=['randla', 'baflac', 'baaf'])
 parser.add_argument('--checkpoint_path', default='', help='Model checkpoint path [default: None]')
-parser.add_argument('--log_dir_name', default='default', help='dir prefix to save model checkpoint [default: default]')
+parser.add_argument('--log_dir', default='default', help='dir prefix to save model checkpoint [default: default]')
 parser.add_argument('--max_epoch', type=int, default=80, help='Epoch to run [default: 100]')
 parser.add_argument('--batch_size', type=int, default=6, help='Batch Size during training [default: 6]')
 parser.add_argument('--val_batch_size', type=int, default=30, help='Validation Batch Size during training [default: 30]')
@@ -43,6 +43,8 @@ parser.add_argument('--focal_gamma', type=int, default=2, help='gamma for focal 
 parser.add_argument('--ignore', type=str, default='', help='mode to ignore default or major [choice: major]')
 FLAGS = parser.parse_args()
 
+if FLAGS.backbone == 'baflac':
+    from utils.config import ConfigSemanticKITTI_BAF as cfg
 
 def my_worker_init_fn(worker_id):
     np.random.seed(np.random.get_state()[1][0] + worker_id)
@@ -53,7 +55,7 @@ class Trainer:
         # Init Logging
         FLAGS.log_dir = "log/"+FLAGS.log_dir+'_'+datetime.datetime.now().strftime("%Y-%-m-%d-%H-%M")
         if not os.path.exists(FLAGS.log_dir):
-            os.mkdir(FLAGS.log_dir)
+            os.makedirs(FLAGS.log_dir)
         self.log_dir = FLAGS.log_dir
         log_fname = os.path.join(FLAGS.log_dir, 'log_train.txt')
         LOGGING_FORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -91,13 +93,39 @@ class Trainer:
         train_dataset = SemanticKITTI('training', seq_list = seq_l, ignore_labels=ignore_labels)
         val_dataset = SemanticKITTI('validation', ignore_labels=ignore_labels)
 
+        # Network & Optimizer
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if FLAGS.backbone == 'baflac':
+            from network.BAF_LAC import BAF_LAC
+            self.logger.info("Use Baseline: BAF-LAC")
+            self.net = BAF_LAC(cfg)
+            self.net.to(device)
+            collate_fn = train_dataset.collate_fn_baf_lac
+
+        elif FLAGS.backbone == 'randla':
+            from network.RandLANet import Network
+            self.logger.info("Use Baseline: Rand-LA")
+            self.net = Network(cfg)
+            self.net.to(device)
+            collate_fn = train_dataset.collate_fn
+
+        elif FLAGS.backbone == 'baaf':
+            from network.BAAF import Network
+            self.logger.info("Use Baseline: BAAF")
+            self.net = Network(cfg)
+            self.net.to(device)
+            collate_fn = train_dataset.collate_fn
+
+        else:
+            raise TypeError("1~5~!! can can need !!!")
+
         self.train_loader = DataLoader(
             train_dataset,
             batch_size=FLAGS.batch_size,
             shuffle=True,
             num_workers=FLAGS.num_workers,
             worker_init_fn=my_worker_init_fn,
-            collate_fn=train_dataset.collate_fn,
+            collate_fn=collate_fn,
             pin_memory=True,
             drop_last=True,
         )
@@ -107,14 +135,9 @@ class Trainer:
             shuffle=True,
             num_workers=FLAGS.num_workers,
             worker_init_fn=my_worker_init_fn,
-            collate_fn=val_dataset.collate_fn,
+            collate_fn=collate_fn,
             pin_memory=True
         )
-
-        # Network & Optimizer
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.net = Network(cfg)
-        self.net.to(device)
 
         # Load the Adam optimizer
         self.optimizer = optim.Adam(self.net.parameters(), lr=cfg.learning_rate)
