@@ -108,6 +108,17 @@ Options:
 python3 visualize_SemanticKITTI.py <args>
 ```
 
+options:
+```
+--dataset path to dataset for visualization
+
+--config dataset config, default utils/semantic-kitti.yaml
+
+--sequence sequence to visualize
+
+--predictions location for predictions
+```
+
 2. Evaluation
 
 - Example Evaluation code
